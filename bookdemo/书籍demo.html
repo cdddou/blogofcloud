@@ -1,0 +1,1516 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>《余温》电子书 Demo</title>
+  <style>
+    :root {
+      --bg: #d7c39d;
+      --bg-deep: #bca67f;
+      --paper: #fbf5e9;
+      --paper-2: #f4ead7;
+      --ink: #2f2922;
+      --muted: #817466;
+      --line: rgba(67, 50, 33, 0.16);
+      --red: #9d3d2f;
+      --red-soft: #c48979;
+      --shadow: rgba(47, 34, 22, 0.24);
+      --serif: "Songti SC", "SimSun", "Noto Serif CJK SC", serif;
+      --sans: "Microsoft YaHei", "PingFang SC", "Noto Sans CJK SC", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 20% 8%, rgba(255, 250, 236, 0.36), transparent 32%),
+        radial-gradient(circle at 82% 12%, rgba(125, 91, 55, 0.16), transparent 26%),
+        linear-gradient(135deg, var(--bg), #eadcc0 48%, var(--bg-deep));
+      font-family: var(--sans);
+      overflow-x: hidden;
+    }
+
+    body[data-theme="night"] {
+      --bg: #191612;
+      --bg-deep: #0f0d0b;
+      --paper: #211d18;
+      --paper-2: #2a251f;
+      --ink: #eadfce;
+      --muted: #b4a794;
+      --line: rgba(234, 223, 206, 0.16);
+      --red: #d28a77;
+      --red-soft: #a96658;
+      --shadow: rgba(0, 0, 0, 0.42);
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.28;
+      background-image:
+        radial-gradient(rgba(70, 54, 34, 0.22) 0.55px, transparent 0.7px),
+        radial-gradient(rgba(70, 54, 34, 0.12) 0.45px, transparent 0.65px);
+      background-size: 13px 17px, 19px 23px;
+      mix-blend-mode: multiply;
+    }
+
+    button {
+      color: inherit;
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+    }
+
+    .intro {
+      min-height: 100vh;
+      display: grid;
+      grid-template-columns: minmax(320px, 1fr) minmax(360px, 1.05fr);
+      gap: clamp(24px, 5vw, 72px);
+      align-items: center;
+      padding: clamp(22px, 5vw, 72px);
+    }
+
+    .intro.hidden {
+      display: none;
+    }
+
+    .intro-copy {
+      max-width: 470px;
+    }
+
+    .eyebrow {
+      margin: 0 0 18px;
+      color: var(--red);
+      font-size: 12px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .intro h1 {
+      margin: 0;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(64px, 9vw, 118px);
+      letter-spacing: 0.12em;
+      line-height: 1.05;
+    }
+
+    .intro-subtitle {
+      margin: 22px 0 0;
+      font-family: var(--serif);
+      color: #51463b;
+      font-size: clamp(18px, 2vw, 24px);
+      line-height: 1.8;
+      text-wrap: pretty;
+    }
+
+    body[data-theme="night"] .intro-subtitle {
+      color: var(--muted);
+    }
+
+    .intro-actions,
+    .reader-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 30px;
+    }
+
+    .action {
+      border: 1px solid rgba(76, 55, 35, 0.22);
+      background: rgba(255, 249, 236, 0.58);
+      min-height: 42px;
+      padding: 9px 16px;
+      border-radius: 999px;
+      cursor: pointer;
+      transition: transform 160ms ease, background 160ms ease, border-color 160ms ease;
+    }
+
+    .action.primary {
+      color: #fff6e8;
+      border-color: var(--red);
+      background: var(--red);
+    }
+
+    .action:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 251, 242, 0.82);
+      border-color: rgba(157, 61, 47, 0.44);
+    }
+
+    .action.primary:hover {
+      background: #883124;
+    }
+
+    body[data-theme="night"] .action {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.16);
+    }
+
+    .box-stage {
+      position: relative;
+      min-height: 540px;
+      perspective: 1300px;
+      display: grid;
+      place-items: center;
+    }
+
+    .box-scene {
+      position: relative;
+      width: min(86vw, 560px);
+      height: 430px;
+      transform-style: preserve-3d;
+      transform: rotateX(58deg) rotateZ(-18deg);
+      transition: transform 900ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .intro.opening .box-scene {
+      transform: rotateX(50deg) rotateZ(-10deg) translateY(-8px);
+    }
+
+    .outer-box,
+    .book-core,
+    .vellum-sheet,
+    .packet,
+    .box-lid {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform-style: preserve-3d;
+      border: 1px solid rgba(75, 55, 34, 0.22);
+      box-shadow: 0 28px 46px rgba(52, 37, 21, 0.18);
+    }
+
+    .outer-box {
+      width: 430px;
+      height: 286px;
+      transform: translate3d(-50%, -50%, -28px);
+      background:
+        linear-gradient(120deg, rgba(255, 255, 255, 0.18), transparent 42%),
+        #d7bd91;
+    }
+
+    .outer-box::before {
+      content: "";
+      position: absolute;
+      inset: 20px;
+      border: 1px dashed rgba(65, 46, 28, 0.25);
+    }
+
+    .box-lid {
+      width: 430px;
+      height: 286px;
+      transform: translate3d(-50%, -60%, 52px) rotateX(0deg);
+      transform-origin: top center;
+      background: rgba(216, 194, 154, 0.76);
+      transition: transform 900ms cubic-bezier(.2, .8, .2, 1), opacity 700ms ease;
+    }
+
+    .intro.opening .box-lid {
+      transform: translate3d(-50%, -92%, 86px) rotateX(-36deg);
+      opacity: 0.72;
+    }
+
+    .book-core {
+      width: 234px;
+      height: 324px;
+      transform: translate3d(-50%, -50%, 38px);
+      background:
+        linear-gradient(90deg, rgba(157, 61, 47, 0.06), transparent 34%),
+        var(--paper);
+      transition: transform 1150ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .book-core::before {
+      content: "余温";
+      position: absolute;
+      left: 44%;
+      top: 34%;
+      transform: translate(-50%, -50%);
+      writing-mode: vertical-rl;
+      font-family: var(--serif);
+      font-size: 38px;
+      letter-spacing: 0.18em;
+      color: var(--red);
+    }
+
+    .book-core::after {
+      content: "";
+      position: absolute;
+      left: 12%;
+      right: 14%;
+      bottom: 26%;
+      border-top: 1px solid rgba(157, 61, 47, 0.38);
+      transform: rotate(-5deg);
+    }
+
+    .intro.opening .book-core {
+      transform: translate3d(-105%, -118%, 112px) rotateZ(13deg);
+    }
+
+    .vellum-sheet {
+      width: 252px;
+      height: 342px;
+      transform: translate3d(-50%, -50%, 72px) rotateZ(2deg);
+      background: rgba(255, 255, 255, 0.42);
+      border-color: rgba(255, 255, 255, 0.54);
+      box-shadow: 0 18px 32px rgba(52, 37, 21, 0.08);
+      transition: transform 1150ms cubic-bezier(.2, .8, .2, 1), opacity 900ms ease;
+    }
+
+    .intro.opening .vellum-sheet {
+      transform: translate3d(-100%, -120%, 128px) rotateZ(20deg);
+      opacity: 0.72;
+    }
+
+    .packet {
+      width: 145px;
+      height: 92px;
+      transform: translate3d(62%, 68%, 88px) rotateZ(6deg);
+      background: #efe2c6;
+      border-radius: 4px;
+      transition: transform 1150ms cubic-bezier(.2, .8, .2, 1);
+    }
+
+    .packet::before {
+      content: "附件袋";
+      position: absolute;
+      left: 18px;
+      top: 18px;
+      color: var(--red);
+      font-family: var(--serif);
+      font-size: 18px;
+    }
+
+    .intro.opening .packet {
+      transform: translate3d(110%, 72%, 108px) rotateZ(12deg);
+    }
+
+    .reader {
+      min-height: 100vh;
+      display: none;
+      grid-template-rows: auto 1fr;
+      padding: 14px;
+    }
+
+    .reader.active {
+      display: grid;
+    }
+
+    .reader-bar {
+      width: min(1180px, 100%);
+      margin: 0 auto 10px;
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 248, 235, 0.28);
+      backdrop-filter: blur(8px);
+    }
+
+    body[data-theme="night"] .reader-bar {
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .book-name {
+      min-width: 0;
+    }
+
+    .book-name strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 20px;
+      font-weight: 500;
+    }
+
+    .book-name span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 2px;
+    }
+
+    .reader-tools {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 8px;
+    }
+
+    .tool {
+      border: 1px solid var(--line);
+      background: rgba(255, 250, 240, 0.42);
+      min-height: 34px;
+      padding: 6px 11px;
+      border-radius: 999px;
+      cursor: pointer;
+    }
+
+    .tool.attach-primary {
+      color: #fff7ec;
+      border-color: var(--red);
+      background: var(--red);
+      box-shadow: 0 8px 18px rgba(157, 61, 47, 0.18);
+    }
+
+    .tool.attach-primary:hover {
+      background: #873225;
+    }
+
+    body[data-theme="night"] .tool {
+      background: rgba(255, 255, 255, 0.06);
+    }
+
+    body[data-theme="night"] .tool.attach-primary {
+      color: #221812;
+      background: #d69a88;
+      border-color: #d69a88;
+    }
+
+    .reader-shell {
+      position: relative;
+      width: min(1180px, 100%);
+      margin: 0 auto;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      min-height: calc(100vh - 92px);
+    }
+
+    .pages {
+      position: relative;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      align-self: center;
+      justify-self: center;
+      width: min(100%, 1020px);
+      min-height: 640px;
+      filter: drop-shadow(0 30px 48px var(--shadow));
+    }
+
+    .pages::before {
+      content: "";
+      position: absolute;
+      top: 18px;
+      bottom: 18px;
+      left: calc(50% - 1px);
+      width: 2px;
+      z-index: 5;
+      background: linear-gradient(90deg, rgba(52, 37, 22, 0.20), rgba(255,255,255,0.2), rgba(52,37,22,0.16));
+    }
+
+    .reader-page {
+      position: relative;
+      min-height: 640px;
+      padding: clamp(36px, 5vw, 72px);
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 18% 12%, rgba(128, 92, 54, 0.055), transparent 22%),
+        radial-gradient(circle at 86% 82%, rgba(128, 92, 54, 0.05), transparent 24%),
+        var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.24) inset;
+    }
+
+    .reader-page.left {
+      border-radius: 8px 0 0 8px;
+    }
+
+    .reader-page.right {
+      border-radius: 0 8px 8px 0;
+    }
+
+    .reader-page::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.24;
+      background-image: radial-gradient(rgba(73, 58, 38, 0.22) 0.5px, transparent 0.7px);
+      background-size: 14px 18px;
+    }
+
+    .page-content {
+      position: relative;
+      z-index: 1;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-kicker {
+      margin: 0 0 28px;
+      color: var(--muted);
+      font-size: 12px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .cover-page {
+      text-align: center;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .cover-title {
+      margin: auto;
+      writing-mode: vertical-rl;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(70px, 8vw, 104px);
+      line-height: 1;
+      letter-spacing: 0.18em;
+    }
+
+    .cover-subtitle {
+      margin: 34px 0 0;
+      font-family: var(--serif);
+      color: var(--muted);
+      font-size: 17px;
+      letter-spacing: 0.12em;
+    }
+
+    .cover-line {
+      width: min(72%, 340px);
+      height: 1px;
+      background: rgba(157, 61, 47, 0.28);
+      margin: 34px auto 0;
+    }
+
+    .chapter-page {
+      justify-content: center;
+      text-align: center;
+    }
+
+    .chapter-title {
+      margin: 0;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(48px, 6vw, 82px);
+      letter-spacing: 0.14em;
+    }
+
+    .chapter-temp {
+      margin: 22px 0;
+      color: var(--red);
+      font-family: Georgia, serif;
+      font-size: 44px;
+    }
+
+    .chapter-desc,
+    .note,
+    .meta {
+      color: var(--muted);
+      line-height: 1.8;
+      font-size: 14px;
+    }
+
+    .hidden-line {
+      width: min(92%, 420px);
+      margin: 34px auto 0;
+      padding: 20px;
+      color: transparent;
+      background: linear-gradient(135deg, #28231e, #5c5247);
+      border: 1px solid rgba(30, 24, 18, 0.20);
+      font-family: var(--serif);
+      font-size: 18px;
+      line-height: 1.9;
+      transition: color 600ms ease, background 600ms ease;
+      user-select: none;
+    }
+
+    .hidden-line.revealed,
+    .hidden-line:active {
+      color: #6a3528;
+      background: radial-gradient(circle at 50% 54%, #fff1d2, #dfbd8c 58%, #8b7054);
+    }
+
+    .poem-title {
+      margin: 0 0 28px;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: clamp(34px, 4vw, 56px);
+    }
+
+    .poem-lines {
+      white-space: pre-line;
+      font-family: var(--serif);
+      font-size: var(--reading-size, 20px);
+      line-height: 2.05;
+      color: var(--ink);
+    }
+
+    body[data-font="small"] { --reading-size: 18px; }
+    body[data-font="medium"] { --reading-size: 20px; }
+    body[data-font="large"] { --reading-size: 23px; }
+
+    .page-footer {
+      margin-top: auto;
+      padding-top: 22px;
+      border-top: 1px solid var(--line);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .toc-list {
+      display: grid;
+      gap: 12px;
+      margin: 12px 0 0;
+      padding: 0;
+    }
+
+    .toc-list li {
+      list-style: none;
+      display: grid;
+      grid-template-columns: 92px 1fr;
+      gap: 16px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--line);
+      cursor: pointer;
+    }
+
+    .toc-list strong {
+      color: var(--red);
+      font-family: Georgia, serif;
+      font-weight: 500;
+    }
+
+    .manuscript {
+      margin: auto;
+      width: min(100%, 390px);
+      min-height: 430px;
+      padding: 30px;
+      background:
+        repeating-linear-gradient(0deg, transparent 0 32px, rgba(92, 70, 44, 0.12) 33px 34px),
+        var(--paper-2);
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 30px rgba(47, 34, 22, 0.08);
+      transform: rotate(-0.8deg);
+    }
+
+    .manuscript.ticket {
+      min-height: 330px;
+      border-style: dashed;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.10) 0 8px, rgba(80,60,40,0.05) 9px 11px),
+        var(--paper-2);
+    }
+
+    .manuscript.cloth {
+      background:
+        repeating-linear-gradient(90deg, rgba(92,70,44,0.06) 0 2px, transparent 2px 8px),
+        repeating-linear-gradient(0deg, rgba(92,70,44,0.05) 0 2px, transparent 2px 9px),
+        var(--paper-2);
+    }
+
+    .scribble {
+      white-space: pre-line;
+      font-family: "KaiTi", "STKaiti", cursive;
+      font-size: 24px;
+      line-height: 1.85;
+    }
+
+    .mask {
+      display: inline-block;
+      width: 86px;
+      height: 18px;
+      background: rgba(155, 151, 139, 0.7);
+      vertical-align: middle;
+    }
+
+    .click-zone {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 22%;
+      z-index: 7;
+      border: 0;
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .click-zone.left-zone { left: 0; }
+    .click-zone.right-zone { right: 0; }
+
+    .progress-row {
+      width: min(1020px, 100%);
+      margin: 10px auto 0;
+      display: grid;
+      grid-template-columns: auto 1fr auto;
+      gap: 14px;
+      align-items: center;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    .progress-track {
+      height: 2px;
+      background: var(--line);
+    }
+
+    .progress-fill {
+      display: block;
+      height: 100%;
+      width: 0;
+      background: var(--red);
+      transition: width 180ms ease;
+    }
+
+    .floating-attach {
+      position: fixed;
+      right: clamp(18px, 4vw, 52px);
+      bottom: clamp(20px, 4vw, 48px);
+      z-index: 14;
+      display: none;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .reader.active .floating-attach {
+      display: flex;
+    }
+
+    .attach-tip {
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      color: var(--muted);
+      background: rgba(255, 250, 240, 0.78);
+      box-shadow: 0 12px 28px rgba(47, 34, 22, 0.12);
+      font-size: 12px;
+      animation: tipFade 4.2s ease forwards;
+      pointer-events: none;
+    }
+
+    @keyframes tipFade {
+      0%, 58% { opacity: 1; transform: translateY(0); }
+      100% { opacity: 0; transform: translateY(8px); visibility: hidden; }
+    }
+
+    .attach-float-btn {
+      min-width: 88px;
+      min-height: 48px;
+      border: 1px solid var(--red);
+      border-radius: 999px;
+      color: #fff7ec;
+      background: var(--red);
+      box-shadow: 0 16px 34px rgba(70, 41, 25, 0.26);
+      cursor: pointer;
+    }
+
+    .modal,
+    .drawer,
+    .attachment-viewer {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      background: rgba(43, 32, 22, 0.35);
+      backdrop-filter: blur(4px);
+    }
+
+    .modal.open,
+    .drawer.open,
+    .attachment-viewer.open {
+      display: block;
+    }
+
+    .modal-panel {
+      width: min(460px, calc(100vw - 28px));
+      max-height: calc(100vh - 56px);
+      overflow: auto;
+      margin: 28px auto;
+      padding: 28px;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.24);
+    }
+
+    .modal-panel h2,
+    .drawer-panel h2 {
+      margin: 0 0 18px;
+      font-family: var(--serif);
+      font-weight: 400;
+      font-size: 32px;
+    }
+
+    .drawer-note,
+    .viewer-meta {
+      margin: -8px 0 20px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.75;
+    }
+
+    .modal-list {
+      display: grid;
+      gap: 8px;
+      padding: 0;
+      margin: 0;
+    }
+
+    .modal-list button {
+      width: 100%;
+      text-align: left;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: transparent;
+      cursor: pointer;
+    }
+
+    .drawer {
+      background: rgba(43, 32, 22, 0.18);
+    }
+
+    .drawer-panel {
+      position: absolute;
+      right: 0;
+      top: 0;
+      bottom: 0;
+      width: min(520px, 100vw);
+      padding: 28px;
+      background: var(--paper);
+      box-shadow: -18px 0 60px rgba(0,0,0,0.22);
+      overflow: auto;
+    }
+
+    .attachment-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 16px;
+      align-items: start;
+      padding: 16px;
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(120deg, rgba(255,255,255,0.18), transparent 46%),
+        rgba(191, 164, 122, 0.18);
+    }
+
+    .attachment-card {
+      min-height: 168px;
+      border: 0;
+      background: transparent;
+      padding: 0;
+      cursor: pointer;
+      text-align: left;
+    }
+
+    .attachment-card:nth-child(2n) {
+      transform: rotate(1deg);
+    }
+
+    .attachment-card:nth-child(2n + 1) {
+      transform: rotate(-0.8deg);
+    }
+
+    .attachment-card strong {
+      display: block;
+      font-family: var(--serif);
+      font-size: 17px;
+      font-weight: 400;
+      margin-top: 8px;
+    }
+
+    .attachment-card span {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    .attachment-thumb {
+      position: relative;
+      display: grid;
+      place-items: center;
+      min-height: 116px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      box-shadow: 0 14px 24px rgba(47, 34, 22, 0.10);
+      overflow: hidden;
+    }
+
+    .attachment-thumb.postcard { aspect-ratio: 1.55 / 1; }
+    .attachment-thumb.ticket { min-height: 82px; border-style: dashed; }
+    .attachment-thumb.receipt { width: 72%; min-height: 148px; margin: 0 auto; }
+    .attachment-thumb.bookmark { width: 74px; min-height: 172px; margin: 0 auto; }
+    .attachment-thumb.blank { min-height: 150px; }
+    .attachment-thumb.packet { border-radius: 8px; }
+
+    .attachment-thumb.packet::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(145deg, transparent 49%, rgba(98, 74, 45, 0.18) 50%, transparent 51%),
+        linear-gradient(35deg, transparent 49%, rgba(98, 74, 45, 0.12) 50%, transparent 51%);
+    }
+
+    .thumb-lines {
+      width: 100%;
+      display: grid;
+      gap: 7px;
+    }
+
+    .thumb-line {
+      height: 1px;
+      background: rgba(82, 61, 40, 0.18);
+    }
+
+    .thumb-barcode {
+      width: 72px;
+      height: 24px;
+      background: repeating-linear-gradient(90deg, #3f3329 0 2px, transparent 2px 5px);
+      opacity: 0.55;
+    }
+
+    .stamp {
+      display: inline-grid;
+      place-items: center;
+      width: 44px;
+      height: 44px;
+      border: 1px solid rgba(157, 61, 47, 0.72);
+      border-radius: 50%;
+      color: var(--red);
+      font-family: var(--serif);
+      transform: rotate(-10deg);
+    }
+
+    .attachment-preview {
+      width: 100%;
+      margin-top: 18px;
+      border: 1px solid var(--line);
+    }
+
+    .viewer-card {
+      width: min(620px, calc(100vw - 28px));
+      margin: 40px auto;
+      padding: 22px;
+      background: var(--paper);
+      box-shadow: 0 30px 80px rgba(0,0,0,0.28);
+      border: 1px solid var(--line);
+    }
+
+    .viewer-title {
+      margin: 0;
+      font-family: var(--serif);
+      font-size: 30px;
+      font-weight: 400;
+    }
+
+    .viewer-object-wrap {
+      min-height: 430px;
+      display: grid;
+      place-items: center;
+      border: 1px solid var(--line);
+      background:
+        radial-gradient(circle at center, rgba(255,255,255,0.22), transparent 55%),
+        rgba(186, 157, 113, 0.14);
+      padding: 24px;
+    }
+
+    .paper-object {
+      width: min(100%, 430px);
+      min-height: 360px;
+      padding: 28px;
+      border: 1px solid var(--line);
+      background: var(--paper-2);
+      box-shadow: 0 18px 34px rgba(47, 34, 22, 0.12);
+    }
+
+    .paper-object.postcard {
+      min-height: 270px;
+      aspect-ratio: 1.55 / 1;
+    }
+
+    .paper-object.ticket {
+      min-height: 190px;
+      border-style: dashed;
+    }
+
+    .paper-object.receipt {
+      width: min(280px, 100%);
+      min-height: 430px;
+      background:
+        repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 8px, rgba(80,60,40,0.05) 9px 11px),
+        var(--paper-2);
+    }
+
+    .paper-object.bookmark {
+      width: 120px;
+      min-height: 420px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .paper-object.packet-object {
+      border-radius: 8px;
+      background:
+        linear-gradient(135deg, transparent 48%, rgba(120, 91, 56, 0.10) 49% 51%, transparent 52%),
+        var(--paper-2);
+    }
+
+    .paper-object.blank-paper {
+      background:
+        repeating-linear-gradient(0deg, transparent 0 31px, rgba(92,70,44,0.14) 32px 33px),
+        var(--paper-2);
+    }
+
+    .field-row {
+      display: grid;
+      grid-template-columns: 62px 1fr;
+      gap: 10px;
+      padding: 8px 0;
+      border-bottom: 1px dotted rgba(80, 60, 40, 0.26);
+    }
+
+    .temperature-scale {
+      display: grid;
+      gap: 18px;
+      align-content: center;
+      height: 100%;
+      font-family: Georgia, serif;
+      color: var(--red);
+    }
+
+    .temperature-scale span {
+      border-bottom: 1px solid rgba(157, 61, 47, 0.34);
+      padding-bottom: 5px;
+    }
+
+    .viewer-actions {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .close-row {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 16px;
+    }
+
+    @media (max-width: 860px) {
+      .intro {
+        grid-template-columns: 1fr;
+        padding: 18px;
+      }
+
+      .box-stage {
+        min-height: 430px;
+      }
+
+      .box-scene {
+        width: 340px;
+        height: 330px;
+        transform: rotateX(58deg) rotateZ(-18deg) scale(0.78);
+      }
+
+      .reader-bar {
+        grid-template-columns: 1fr;
+      }
+
+      .reader-tools {
+        justify-content: flex-start;
+      }
+
+      .pages {
+        grid-template-columns: 1fr;
+        width: min(100%, 430px);
+        min-height: 0;
+      }
+
+      .pages::before {
+        display: none;
+      }
+
+      .reader-page {
+        min-height: 640px;
+        border-radius: 8px;
+      }
+
+      .reader-page.right {
+        display: none;
+      }
+
+      .progress-row {
+        grid-template-columns: 1fr;
+      }
+
+      .attachment-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .floating-attach {
+        right: 14px;
+        bottom: 14px;
+      }
+
+      .attach-tip {
+        display: none;
+      }
+
+      .viewer-object-wrap {
+        min-height: 360px;
+        padding: 14px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .reader {
+        padding: 10px;
+      }
+
+      .reader-page {
+        padding: 30px 24px;
+      }
+
+      .cover-title {
+        font-size: 70px;
+      }
+
+      .poem-lines {
+        line-height: 1.95;
+      }
+    }
+  </style>
+</head>
+<body data-font="medium">
+  <main class="app">
+    <section class="intro" id="intro">
+      <div class="intro-copy">
+        <p class="eyebrow">YU WEN / E-BOOK DEMO</p>
+        <h1>余温</h1>
+        <p class="intro-subtitle">一份从外盒中抽出的电子书样本。先打开包裹，再进入平凡人诗歌与生活手稿。</p>
+        <div class="intro-actions">
+          <button class="action primary" type="button" id="openBook">打开《余温》</button>
+          <button class="action" type="button" id="skipIntro">跳过开盒</button>
+        </div>
+      </div>
+      <div class="box-stage" aria-label="外盒、书芯与附件开盒动画">
+        <div class="box-scene">
+          <div class="outer-box"></div>
+          <div class="box-lid"></div>
+          <div class="book-core"></div>
+          <div class="vellum-sheet"></div>
+          <div class="packet"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="reader" id="reader" aria-live="polite">
+      <header class="reader-bar">
+        <div class="book-name">
+          <strong>《余温》</strong>
+          <span id="sectionLabel">封面</span>
+        </div>
+        <div class="reader-tools">
+          <button class="tool attach-primary" type="button" id="attachBtn">查看附件袋</button>
+          <button class="tool" type="button" id="tocBtn">目录</button>
+          <button class="tool" type="button" id="fontBtn">字号</button>
+          <button class="tool" type="button" id="themeBtn">纸张/夜间</button>
+        </div>
+      </header>
+
+      <div class="reader-shell">
+        <button class="click-zone left-zone" type="button" id="prevZone" aria-label="上一页"></button>
+        <button class="click-zone right-zone" type="button" id="nextZone" aria-label="下一页"></button>
+        <div class="pages">
+          <article class="reader-page left"><div class="page-content" id="leftPage"></div></article>
+          <article class="reader-page right"><div class="page-content" id="rightPage"></div></article>
+        </div>
+        <div class="progress-row">
+          <span id="pageInfo">1 / 1</span>
+          <div class="progress-track"><span class="progress-fill" id="progressFill"></span></div>
+          <span>← → 翻页</span>
+        </div>
+        <div class="floating-attach" id="floatingAttach">
+          <span class="attach-tip">随书附件可在这里查看</span>
+          <button class="attach-float-btn" type="button" id="floatAttachBtn">附件袋</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal" id="tocModal" aria-hidden="true">
+    <div class="modal-panel">
+      <div class="close-row"><button class="tool" type="button" data-close="tocModal">关闭</button></div>
+      <h2>目录</h2>
+      <div class="modal-list" id="tocList"></div>
+    </div>
+  </div>
+
+  <div class="drawer" id="attachmentDrawer" aria-hidden="true">
+    <aside class="drawer-panel">
+      <div class="close-row"><button class="tool" type="button" data-close="attachmentDrawer">关闭</button></div>
+      <h2>随书附件</h2>
+      <p class="drawer-note">这些是随书附赠的可查看物件，不属于正文页。点击任一物件查看正反面。</p>
+      <div class="attachment-grid" id="attachmentGrid"></div>
+      <img class="attachment-preview" src="assets/attachments.png" alt="《余温》附件设计总览图" />
+    </aside>
+  </div>
+
+  <div class="attachment-viewer" id="attachmentViewer" aria-hidden="true">
+    <div class="viewer-card">
+      <div class="close-row"><button class="tool" type="button" data-close="attachmentViewer">关闭</button></div>
+      <h2 class="viewer-title" id="attachmentTitle">附件</h2>
+      <p class="viewer-meta" id="attachmentMeta"></p>
+      <div class="viewer-object-wrap"><div id="attachmentObject"></div></div>
+      <div class="viewer-actions">
+        <button class="tool" type="button" id="flipAttachment">查看背面</button>
+        <span id="attachmentSide">正面</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const pages = [
+      {
+        title: "封面",
+        type: "cover",
+        html: `<div class="cover-page">
+          <h1 class="cover-title">余温</h1>
+          <p class="cover-subtitle">平凡人诗歌与生活手稿</p>
+          <div class="cover-line"></div>
+        </div>`
+      },
+      {
+        title: "扉页",
+        html: `<p class="page-kicker">Half Title</p>
+          <h2 class="poem-title">一本被体温唤醒的诗集</h2>
+          <div class="poem-lines">作者在生活缝隙中写下文字，纸张替他们保存痕迹，读者用手掌重新唤醒这些痕迹。</div>
+          <p class="page-footer">本 demo 中的诗歌、作者与手稿均为示例文本，用于演示电子书阅读方式。</p>`
+      },
+      {
+        title: "目录",
+        html: `<p class="page-kicker">Contents</p>
+          <h2 class="poem-title">温度目录</h2>
+          <ul class="toc-list">
+            <li data-jump="3"><strong>0℃-15℃</strong><span>失温：无人回应的夜，临时住处，站台与远方。</span></li>
+            <li data-jump="6"><strong>36.5℃</strong><span>恒温：一顿饭和一盏灯，未接电话，互相照看。</span></li>
+            <li data-jump="9"><strong>39℃-50℃</strong><span>发热：身体的汗，时间倒计时，委屈和误解。</span></li>
+            <li data-jump="12"><strong>98℃-101℃</strong><span>沸腾：说出口，把余温交出去。</span></li>
+          </ul>`
+      },
+      chapter("失温", "0℃-15℃", "孤独空间、漂泊感、无人回应、清冷内省。", "夜里没有回声，纸替我把沉默留住。"),
+      poem("临时住处", "5℃ · 临时住处", `我把钥匙放在窗台，\n像把一个夜晚\n借给明天。\n\n隔壁的水管咳嗽，\n楼下有人收走纸箱。\n\n这座城市没有问我姓名，\n只把一盏灯\n亮到很晚。`, "示例作者A / 青年租住者 / 广州 / 租房便签"),
+      manuscript("临时住处", `钥匙放在窗台\n夜晚借给明天\n\n楼下收纸箱的人\n没有抬头\n\n房东电话：<span class="mask"></span>`, ""),
+      chapter("恒温", "36.5℃-37.2℃", "日常照看、稳定陪伴、距离中的牵挂。", "有人把饭留在锅里，也把你留在世界上。"),
+      poem("未接电话", "36.8℃ · 未接电话", `母亲打来电话时\n我正在给别人换药。\n\n屏幕亮了三次，\n像三小碗热水\n放在走廊尽头。\n\n我回拨过去，\n她说没事，\n只是问你\n有没有吃饭。`, "示例作者B / 夜班护士 / 武汉 / 护理记录纸背面"),
+      manuscript("未接电话", `屏幕亮了三次\n我在走廊尽头\n听见饭热着\n\n病区床号 <span class="mask"></span>\n母亲说：\n没事。`, ""),
+      chapter("发热", "39℃-50℃", "汗水、脚步、平台提醒、时间倒计时。", "汗落在小票上，字迹比红灯更急。"),
+      poem("时间倒计时", "42℃ · 时间倒计时", `红灯剩下四十秒，\n雨衣里先下起雨。\n\n我把地址背在肩上，\n把一句抱歉\n含在牙齿后面。\n\n电梯还在十七楼，\n手机已经开始发热。`, "示例作者C / 即时配送员 / 成都 / 订单小票背面"),
+      manuscript("时间倒计时", `订单号 <span class="mask"></span>\n预计送达 12:34\n\n红灯剩四十秒\n雨衣里先下起雨\n\n抱歉抱歉\n电梯在十七楼`, "ticket"),
+      chapter("沸腾", "98℃-101℃", "尊严意识、公开表达、把经验交给他人。", "我把没说出口的话，交给下一双手。"),
+      poem("把余温交出去", "101℃ · 把余温交出去", `我不再把名字\n折进工服口袋。\n\n针脚把一天缝紧，\n也把我\n从一天里拆出来。\n\n如果你翻到这里，\n请替我\n摸一摸纸上的热。`, "示例作者D / 制衣工人 / 东莞 / 工服布料拓印"),
+      manuscript("把余温交出去", `名字不要折进口袋\n\n针脚把一天缝紧\n也把我拆出来\n\n摸一摸纸上的热`, "cloth"),
+      {
+        title: "写下你的余温",
+        html: `<p class="page-kicker">Blank Manuscript Paper</p>
+          <h2 class="poem-title">写下你的余温</h2>
+          <div class="manuscript"><div class="scribble">请写下：\n今天还没有散尽的\n一点余温。</div></div>
+          <p class="page-footer">这张空白手稿纸属于读者。它不在正文里，却让这本书继续生长。</p>`
+      },
+      {
+        title: "生成说明",
+        html: `<p class="page-kicker">Demo Note</p>
+          <h2 class="poem-title">生成说明</h2>
+          <div class="poem-lines">本 demo 由 AI 辅助生成，内容、交互与视觉仅用于《余温》电子书样本展示；正式出版文本、作者信息与手稿扫描需以真实征集与授权材料为准。</div>
+          <p class="page-footer">AI 辅助范围：网页结构、交互原型、示例文本与视觉表达生成。正式书籍仍需作者授权、编辑校订与真实材料替换。</p>`
+      },
+      {
+        title: "封底",
+        html: `<div class="cover-page">
+          <h2 class="poem-title">余温</h2>
+          <div class="poem-lines">一本书由此成为平凡人与平凡人之间的情感中转站。</div>
+        </div>`
+      }
+    ];
+
+    function chapter(title, temp, desc, hidden) {
+      return {
+        title,
+        html: `<div class="chapter-page">
+          <p class="page-kicker">Chapter</p>
+          <h2 class="chapter-title">${title}</h2>
+          <div class="chapter-temp">${temp}</div>
+          <p class="chapter-desc">${desc}</p>
+          <div class="hidden-line" data-hidden-line>${hidden}</div>
+          <p class="note">长按黑色区域，模拟体温显影。</p>
+        </div>`
+      };
+    }
+
+    function poem(title, kicker, lines, meta) {
+      return {
+        title,
+        html: `<p class="page-kicker">${kicker}</p>
+          <h2 class="poem-title">${title}</h2>
+          <div class="poem-lines">${lines}</div>
+          <p class="page-footer">${meta}</p>`
+      };
+    }
+
+    function manuscript(title, text, cls) {
+      return {
+        title: `${title} / 手稿`,
+        html: `<p class="page-kicker">Original Manuscript</p>
+          <div class="manuscript ${cls}"><div class="scribble">${text}</div></div>
+          <p class="page-footer">原始载体页保留折痕、涂改、压痕与隐私遮盖；真实扫描可在正式版本中替换。</p>`
+      };
+    }
+
+    const attachments = [
+      {
+        id: "postcard",
+        name: "快递单明信片",
+        shape: "postcard",
+        desc: "把一句诗寄给另一个正在路上的人。",
+        thumb: `<div class="attachment-thumb postcard"><div class="thumb-lines"><span class="thumb-line"></span><span class="thumb-line"></span><span class="thumb-line"></span></div><span class="stamp">余温</span><div class="thumb-barcode"></div></div>`,
+        front: `<div class="paper-object postcard"><p class="page-kicker">Delivery Postcard</p><h2 class="poem-title">快递单明信片</h2><div class="field-row"><span>寄件</span><strong>平凡生活现场</strong></div><div class="field-row"><span>收件</span><strong>正在阅读的人</strong></div><div class="field-row"><span>备注</span><span>请轻放。内含一份没有散尽的余温。</span></div><div class="thumb-barcode"></div><span class="stamp">余温</span></div>`,
+        back: `<div class="paper-object postcard"><p class="page-kicker">Back</p><div class="poem-lines">写给：__________\n\n今天我想寄出的句子是：\n____________________________</div></div>`
+      },
+      {
+        id: "ticket",
+        name: "火车票书签",
+        shape: "ticket",
+        desc: "夹在“站台与远方”章节。",
+        thumb: `<div class="attachment-thumb ticket"><strong>10℃</strong><span>站台与远方</span><div class="thumb-barcode"></div></div>`,
+        front: `<div class="paper-object ticket"><p class="page-kicker">Ticket Bookmark</p><h2>10℃ 站台与远方</h2><div class="field-row"><span>出发</span><strong>临时住处</strong></div><div class="field-row"><span>到达</span><strong>未抵达的明天</strong></div><div class="field-row"><span>日期</span><span>阅读当天</span></div></div>`,
+        back: `<div class="paper-object ticket"><div class="field-row"><span>座位号</span><strong>余温-015</strong></div><div class="field-row"><span>检票口</span><span>写给自己的信</span></div><div class="thumb-barcode"></div></div>`
+      },
+      {
+        id: "receipt",
+        name: "小票诗卡",
+        shape: "receipt",
+        desc: "模拟生活缝隙中的短诗。",
+        thumb: `<div class="attachment-thumb receipt"><p>订单号 <span class="mask"></span></p><div class="poem-lines">雨停前\n把热汤送到。</div></div>`,
+        front: `<div class="paper-object receipt"><p class="page-kicker">Receipt Poem</p><div class="field-row"><span>订单号</span><span class="mask"></span></div><div class="field-row"><span>时间</span><span>12:34</span></div><div class="poem-lines">雨停前\n把热汤送到。</div></div>`,
+        back: `<div class="paper-object receipt"><p class="page-kicker">Blank</p><div class="poem-lines">在这里写下一首很短的诗。</div></div>`
+      },
+      {
+        id: "thermo",
+        name: "温度计书签",
+        shape: "bookmark",
+        desc: "对应四个温度章节。",
+        thumb: `<div class="attachment-thumb bookmark"><div class="temperature-scale"><span>0℃</span><span>36.5℃</span><span>39℃</span><span>101℃</span></div></div>`,
+        front: `<div class="paper-object bookmark"><div class="temperature-scale"><span>0℃</span><span>36.5℃</span><span>39℃</span><span>101℃</span></div></div>`,
+        back: `<div class="paper-object bookmark"><div class="temperature-scale"><span>失温</span><span>恒温</span><span>发热</span><span>沸腾</span></div></div>`
+      },
+      {
+        id: "blank",
+        name: "空白手稿纸",
+        shape: "blank",
+        desc: "邀请读者写下自己的片段。",
+        thumb: `<div class="attachment-thumb blank"><div class="scribble">请写下：\n一点余温。</div></div>`,
+        front: `<div class="paper-object blank-paper"><div class="scribble">请写下：\n今天还没有散尽的\n一点余温。</div></div>`,
+        back: `<div class="paper-object blank-paper"><p class="page-kicker">Note</p><p>这张纸没有作者，它等待成为下一份手稿。</p></div>`
+      },
+      {
+        id: "packet",
+        name: "附件袋",
+        shape: "packet",
+        desc: "收纳所有随书物件。",
+        thumb: `<div class="attachment-thumb packet"><strong>附件袋</strong><span>五件纸质物件</span></div>`,
+        front: `<div class="paper-object packet-object"><h2 class="poem-title">附件袋</h2><p>快递单明信片 / 火车票书签 / 小票诗卡 / 温度计书签 / 空白手稿纸</p></div>`,
+        back: `<div class="paper-object packet-object"><p>请把读完后的纸片重新放回这里。</p></div>`
+      }
+    ];
+
+    const intro = document.querySelector("#intro");
+    const reader = document.querySelector("#reader");
+    const leftPage = document.querySelector("#leftPage");
+    const rightPage = document.querySelector("#rightPage");
+    const pageInfo = document.querySelector("#pageInfo");
+    const progressFill = document.querySelector("#progressFill");
+    const sectionLabel = document.querySelector("#sectionLabel");
+    const tocModal = document.querySelector("#tocModal");
+    const attachmentDrawer = document.querySelector("#attachmentDrawer");
+    const attachmentViewer = document.querySelector("#attachmentViewer");
+    const attachmentObject = document.querySelector("#attachmentObject");
+    const attachmentTitle = document.querySelector("#attachmentTitle");
+    const attachmentMeta = document.querySelector("#attachmentMeta");
+    const attachmentSide = document.querySelector("#attachmentSide");
+    const flipAttachment = document.querySelector("#flipAttachment");
+    let pageIndex = 0;
+    let currentAttachment = null;
+    let attachmentBack = false;
+    const isMobile = () => window.matchMedia("(max-width: 860px)").matches;
+
+    function enterReader() {
+      intro.classList.add("hidden");
+      reader.classList.add("active");
+      render();
+    }
+
+    document.querySelector("#openBook").addEventListener("click", () => {
+      intro.classList.add("opening");
+      setTimeout(enterReader, 1200);
+    });
+
+    document.querySelector("#skipIntro").addEventListener("click", enterReader);
+
+    function render() {
+      const spreadSize = isMobile() ? 1 : 2;
+      pageIndex = Math.max(0, Math.min(pageIndex, pages.length - 1));
+      const left = pages[pageIndex];
+      const right = pages[pageIndex + 1];
+      leftPage.innerHTML = left ? left.html : "";
+      rightPage.innerHTML = right ? right.html : "";
+      sectionLabel.textContent = left ? left.title : "";
+      pageInfo.textContent = `${pageIndex + 1} / ${pages.length}`;
+      progressFill.style.width = `${((pageIndex + spreadSize) / pages.length) * 100}%`;
+      bindPageInteractions();
+    }
+
+    function nextPage() {
+      const step = isMobile() ? 1 : 2;
+      pageIndex = Math.min(pages.length - 1, pageIndex + step);
+      render();
+    }
+
+    function prevPage() {
+      const step = isMobile() ? 1 : 2;
+      pageIndex = Math.max(0, pageIndex - step);
+      render();
+    }
+
+    function bindPageInteractions() {
+      document.querySelectorAll("[data-hidden-line]").forEach((line) => {
+        let timer;
+        const start = () => {
+          clearTimeout(timer);
+          timer = setTimeout(() => line.classList.add("revealed"), 520);
+        };
+        const cancel = () => clearTimeout(timer);
+        line.addEventListener("pointerdown", start);
+        line.addEventListener("pointerup", cancel);
+        line.addEventListener("pointerleave", cancel);
+        line.addEventListener("click", () => line.classList.add("revealed"));
+      });
+      document.querySelectorAll("[data-jump]").forEach((item) => {
+        item.addEventListener("click", () => {
+          pageIndex = Number(item.dataset.jump);
+          render();
+        });
+      });
+    }
+
+    document.querySelector("#nextZone").addEventListener("click", nextPage);
+    document.querySelector("#prevZone").addEventListener("click", prevPage);
+    document.addEventListener("keydown", (event) => {
+      if (!reader.classList.contains("active")) return;
+      if (event.key === "ArrowRight") nextPage();
+      if (event.key === "ArrowLeft") prevPage();
+      if (event.key === "Escape") closeAll();
+    });
+
+    const tocTargets = [
+      ["封面", 0],
+      ["目录", 2],
+      ["失温", 3],
+      ["恒温", 6],
+      ["发热", 9],
+      ["沸腾", 12],
+      ["写下你的余温", 15],
+      ["生成说明", 16]
+    ];
+
+    document.querySelector("#tocList").innerHTML = tocTargets.map(([label, index]) =>
+      `<button type="button" data-toc-jump="${index}">${label}</button>`
+    ).join("");
+
+    document.querySelectorAll("[data-toc-jump]").forEach((button) => {
+      button.addEventListener("click", () => {
+        pageIndex = Number(button.dataset.tocJump);
+        closeAll();
+        render();
+      });
+    });
+
+    document.querySelector("#tocBtn").addEventListener("click", () => tocModal.classList.add("open"));
+    function openAttachmentDrawer() {
+      attachmentDrawer.classList.add("open");
+    }
+
+    document.querySelector("#attachBtn").addEventListener("click", openAttachmentDrawer);
+    document.querySelector("#floatAttachBtn").addEventListener("click", openAttachmentDrawer);
+
+    const fontStates = ["small", "medium", "large"];
+    document.querySelector("#fontBtn").addEventListener("click", () => {
+      const current = document.body.dataset.font || "medium";
+      const next = fontStates[(fontStates.indexOf(current) + 1) % fontStates.length];
+      document.body.dataset.font = next;
+    });
+
+    document.querySelector("#themeBtn").addEventListener("click", () => {
+      document.body.dataset.theme = document.body.dataset.theme === "night" ? "" : "night";
+    });
+
+    function renderAttachments() {
+      document.querySelector("#attachmentGrid").innerHTML = attachments.map((item, index) =>
+        `<button class="attachment-card" type="button" data-attachment="${index}">
+          ${item.thumb}
+          <strong>${item.name}</strong><span>${item.desc}</span>
+        </button>`
+      ).join("");
+      document.querySelectorAll("[data-attachment]").forEach((button) => {
+        button.addEventListener("click", () => openAttachment(Number(button.dataset.attachment)));
+      });
+    }
+
+    function openAttachment(index) {
+      currentAttachment = attachments[index];
+      attachmentBack = false;
+      attachmentTitle.textContent = currentAttachment.name;
+      attachmentMeta.textContent = currentAttachment.desc;
+      attachmentObject.innerHTML = currentAttachment.front;
+      attachmentSide.textContent = "正面";
+      flipAttachment.textContent = "查看背面";
+      attachmentViewer.classList.add("open");
+    }
+
+    flipAttachment.addEventListener("click", () => {
+      if (!currentAttachment) return;
+      attachmentBack = !attachmentBack;
+      attachmentObject.innerHTML = attachmentBack ? currentAttachment.back : currentAttachment.front;
+      attachmentSide.textContent = attachmentBack ? "背面" : "正面";
+      flipAttachment.textContent = attachmentBack ? "查看正面" : "查看背面";
+    });
+
+    function closeAll() {
+      tocModal.classList.remove("open");
+      attachmentDrawer.classList.remove("open");
+      attachmentViewer.classList.remove("open");
+    }
+
+    document.querySelectorAll("[data-close]").forEach((button) => {
+      button.addEventListener("click", () => {
+        document.querySelector(`#${button.dataset.close}`).classList.remove("open");
+      });
+    });
+
+    [tocModal, attachmentDrawer, attachmentViewer].forEach((overlay) => {
+      overlay.addEventListener("click", (event) => {
+        if (event.target === overlay) overlay.classList.remove("open");
+      });
+    });
+
+    window.addEventListener("resize", render);
+    renderAttachments();
+  </script>
+</body>
+</html>
